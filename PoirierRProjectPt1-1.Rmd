@@ -1,0 +1,234 @@
+---
+title: "RProjectpt1"
+output: html_notebook
+---
+# Packages
+
+```{r}
+library(ggplot2)
+library(vegan)
+```
+
+# Load Data
+
+```{r}
+data=read.table('RTestDATA-1.txt', header=TRUE)
+attach(data)
+head(data)
+data$time<-as.factor(data$time) #change time to factor
+data$status<-as.factor(data$status) #change status to factor
+```
+
+# Part A: Univariate statistics with R
+
+Normality check & data transformation
+
+```{r}
+#deepest data
+#histogram
+hist(deepest)
+
+#qqnrom
+qqnorm(deepest)
+qqline(deepest) #creates line 
+
+#shapiro test
+shapiro.test(deepest) #normal
+
+# Streptococcus bacteria data
+#histogram
+hist(strep)
+
+#qqnrom
+qqnorm(strep)
+qqline(strep) #creates line 
+
+#shapiro test
+shapiro.test(strep) #not normal, need to transform
+
+# Leptotrichia bacteria data
+#histogram
+hist(lepto)
+
+#qqnrom
+qqnorm(lepto)
+qqline(lepto) #creates line 
+
+#shapiro test
+shapiro.test(lepto) #not normal
+
+# Prevotella bacteria data
+#histogram
+hist(prev)
+
+#qqnrom
+qqnorm(prev)
+qqline(prev) #creates line 
+
+#shapiro test
+shapiro.test(prev) #not normal
+
+# Fusobacteria bacteria data
+#histogram
+hist(fuso)
+
+#qqnrom
+qqnorm(fuso)
+qqline(fuso) #creates line 
+
+#shapiro test
+shapiro.test(fuso) #not normal
+
+# Veillonella bacteria data
+#histogram
+hist(veil)
+
+#qqnrom
+qqnorm(veil)
+qqline(veil) #creates line 
+
+#shapiro test
+shapiro.test(veil) #not normal
+
+
+```
+
+Transformations for non normal data:
+
+```{r}
+transstrep<-log(strep)
+hist(transstrep)
+qqnorm(transstrep)
+qqline(transstrep)
+shapiro.test(transstrep) #now normal
+
+translepto<-sqrt(lepto)
+hist(translepto)
+qqnorm(translepto)
+qqline(translepto)
+shapiro.test(translepto) #now normal
+
+transprev<-sqrt(prev)
+hist(transprev)
+qqnorm(transprev)
+qqline(transprev)
+shapiro.test(transprev) #now normal
+
+transfuso<-sqrt(fuso+1)
+hist(transfuso)
+qqnorm(transfuso)
+qqline(transfuso)
+shapiro.test(transfuso) #now normal
+
+transveil<-sqrt(veil)
+hist(transveil)
+qqnorm(transveil)
+qqline(transveil)
+shapiro.test(transveil) #now normal
+```
+One-way ANOVA and summary and boxplots:
+
+```{r}
+#Lepto by time
+model1 <- lm(translepto ~ time, data = data)
+anova(model1) #p=0.02561, There is a significant difference between lepto and time
+summary(model1)
+boxplot(translepto~time,data=data, main="lepto vs time",
+   xlab="Time", ylab="Lepto") #boxplot
+
+#Strep by time
+model2 <- lm(transstrep ~ time, data = data)
+anova(model2) #p=0.3541, There is not a significant difference between strep and time
+boxplot(strep~time,data=data, main="strep vs time",
+   xlab="Time", ylab="Strep") #boxplot
+```
+Correlation analysis (cor.test)
+
+```{r}
+#Strep vs. prev
+cor.test (transstrep, transprev) #cor=-0.3797993, p=0.001
+
+#Strep vs. fuso
+cor.test (transstrep, transfuso) #cor=-0.4962498, p=9.289e-06
+
+#Fuso vs. lepto
+cor.test (transfuso, translepto) #cor=0.08286578, p=0.4889
+```
+Linear regressions
+
+```{r}
+#Strep vs. deepest
+model3 <- lm(transstrep ~ deepest, data = data)
+summary(model3)
+plot(deepest, transstrep) 
+abline(model3) #plot with line
+
+#Fuso vs. deepest
+model4 <- lm(transfuso ~ deepest, data = data)
+summary(model4)
+plot(deepest, transfuso)
+abline(model4) #plot with line
+```
+
+# Part B: Use ggplot2 to make pretty graphs
+
+```{r}
+#(1) ggplot histogram of prev variable.
+ggplot(data, aes(x=transprev)) + geom_histogram()
+
+#(2) ggplot scatterplot of strep by deepest, colored by time
+ggplot(data, aes(x=deepest, y=transstrep, color=time)) + geom_point()
+
+#(3) ggplot scatterplot of fuso by deepest
+ggplot(data, aes(x=deepest, y=transfuso)) + geom_point()
+
+#(4) Same as 3 but use smoothing algorithm
+ggplot(data, aes(x=deepest, y=transfuso)) + geom_point()+ geom_smooth(method=lm)
+```
+
+# Part C: Vegan analysis
+
+```{r}
+#create a new dataset with just the bacter abundances
+newdata <- data[, c('strep', 'prev', 'lepto', 'fuso', 'veil')]
+newdata<-round(newdata)
+head(newdata)
+```
+```{r}
+#(1) Calculate alpha diversity (Shannon) for the dataset
+shannon <- diversity(newdata)
+shannon
+
+#(2) Rarefy the data and make a plot using rarecurve
+spAbund <- rowSums(newdata)  #gives the number of individuals found in each plot
+
+spAbund
+raremin <- min(rowSums(newdata))
+
+sRare <- rarefy(newdata, raremin)
+
+rarecurve(newdata, col = "blue")
+
+#(3) Calculate Bray-Curtis dissimilarity matrix, show the matrix and plot a histogram
+bray = vegdist(newdata, "bray") #Bray-Curtis dissimilarity matrix
+bray #matrix
+hist(bray, xlim = range(0.0,1.0)) #histogram
+
+#(1) Make a multidimensional scaling plot using the Bray-Curtis matrix
+newdata.mds <- metaMDS(comm = newdata, distance = "bray", trace = FALSE, autotransform = FALSE)
+plot(newdata.mds$points) #plot using bray-curtis matrix
+
+#(2) Color the plot by status, then time
+MDS_xy <- data.frame(newdata.mds$points) #make a new dataframe from the mds coordinates
+MDS_xy$status <- data$status #add status from data to new dataframe
+MDS_xy$time <- data$time #add time from data to new dataframe
+
+ggplot(MDS_xy, aes(MDS1, MDS2, color = status)) +
+  geom_point() +
+  theme_bw() #color code plot by status
+
+ggplot(MDS_xy, aes(MDS1, MDS2, color = time)) +
+  geom_point() +
+  theme_bw() #color code plot by time
+```
+
