@@ -1,7 +1,7 @@
 # R-Project
 
 ## PoirierRProjectPt1_1.Rmd:
-- reads in the RTestDATA-1.txt file.
+- reads in the RTestDATA-1.txt file
   - RTestDATA.txt contains abundance of diverse bacterial data from a study on gum disease
 - first test the normality of bacterial abundance and then transforms any that is not normal
 - makes a one-way ANOVA and boxplots comparing a type of bacteria to time
